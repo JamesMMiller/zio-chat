@@ -1,0 +1,47 @@
+# Scala specific
+*.class
+*.log
+.metals/
+.bloop/
+.bsp/
+project/metals.sbt
+
+# SBT specific
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+.history
+.cache
+.lib/
+
+# IDE specific
+.idea/
+.idea_modules/
+*.iml
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS specific
+.DS_Store
+*.swp
+*~
+
+# Application specific
+.env
+*.conf.local
+application-*.conf
+!application.conf
+!reference.conf
+
+# Temp files
+tmp/
+temp/
+
+# Dependency specific
+null/ 
