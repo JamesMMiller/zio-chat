@@ -52,7 +52,6 @@ object Main extends ZIOAppDefault:
     ).orDie
     _ <- chatLoop.provide(
       GeminiConfig.layer,
-      GeminiService.layer,
-      Client.default
+      GeminiService.layer
     )
   yield () 
