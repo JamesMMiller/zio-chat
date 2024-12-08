@@ -106,6 +106,53 @@
     - Add coverage badges to README
   - **Estimated Effort**: Medium
 
+### P1 - Distribution & Packaging
+- [ ] Add Homebrew Distribution Support
+  - **Scope**: 
+    - Enable application distribution via Homebrew
+    - Create native binary packaging
+    - Automate release process
+  - **Dependencies**: None
+  - **Sub-tasks**:
+    1. Native Binary Packaging
+       - [ ] Add GraalVM native-image support
+       - [ ] Configure native-image options
+       - [ ] Add SBT Universal Plugin
+       - [ ] Create binary wrapper scripts
+       - [ ] Test native binary packaging
+
+    2. Release Automation
+       - [ ] Create GitHub release workflow
+       - [ ] Add version management
+       - [ ] Configure artifact publishing
+       - [ ] Add release documentation
+       - [ ] Test release process
+
+    3. Homebrew Formula
+       - [ ] Create Homebrew formula
+       - [ ] Add formula to tap repository
+       - [ ] Configure dependencies
+       - [ ] Add installation tests
+       - [ ] Document installation process
+
+  - **Acceptance Criteria**:
+    - [ ] Application can be installed via `brew install zio-chat`
+    - [ ] All dependencies are automatically managed
+    - [ ] Native binary works across supported platforms
+    - [ ] Release process is fully automated
+    - [ ] Installation is documented in README
+    - [ ] Version updates are automated
+
+  - **Technical Notes**:
+    - Use GraalVM native-image for binary creation
+    - Consider cross-platform support (Linux/macOS)
+    - Handle API key configuration post-install
+    - Use GitHub Actions for release automation
+    - Consider using coursier for dependency management
+    - Add version command to CLI
+
+  - **Estimated Effort**: Large
+
 ## Planned 📋
 
 ### P1 - Enhanced Features
