@@ -126,8 +126,10 @@ Before contributing, familiarize yourself with:
    - Update documentation
    - Check acceptance criteria
 
-2. **PR Template**
-   ```markdown
+2. **Creating PR (GitHub CLI)**
+   ```bash
+   # Create PR template
+   cat > .pr-template.md << 'EOF'
    ## Description
    Brief description of changes
 
@@ -136,7 +138,8 @@ Before contributing, familiarize yourself with:
    - AI Assisted: Yes/No
 
    ## Acceptance Criteria
-   - [ ] Criteria list
+   - [ ] Criterion 1
+   - [ ] Criterion 2
 
    ## Testing
    - [ ] Unit tests
@@ -147,6 +150,33 @@ Before contributing, familiarize yourself with:
    - [ ] Code comments
    - [ ] README updates
    - [ ] BACKLOG.md updates
+   EOF
+
+   # Push your branch
+   git push -u origin feature/your-branch-name
+
+   # Create PR using gh cli
+   gh pr create \
+     --title "[Type] Short description" \
+     --body-file .pr-template.md
+
+   # Clean up template
+   rm .pr-template.md
+   ```
+
+3. **Review Process**
+   ```bash
+   # Check PR status
+   gh pr status
+
+   # List PRs
+   gh pr list
+
+   # Review PR
+   gh pr review [PR-number] --approve
+
+   # Merge PR (when approved)
+   gh pr merge [PR-number] --squash --delete-branch
    ```
 
 ## Getting Help
