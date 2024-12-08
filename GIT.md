@@ -61,41 +61,83 @@ AI: Yes/No
    - Update documentation
    - Check acceptance criteria
 
-2. **Backlog Updates**
-   - Branch naming: `docs/backlog-update-description`
-   - Commit type: `[Docs]`
-   - PR can be merged directly to main if only updating BACKLOG.md
-   - Must follow backlog item format from CONTRIBUTING.md
-   - Requires one reviewer approval
-   - Example workflow:
-     ```bash
-     git checkout main
-     git checkout -b docs/backlog-update-add-package-refactor
-     # Edit BACKLOG.md
-     git add BACKLOG.md
-     git commit -m "[Docs] Add package refactoring task to backlog
+2. **PR Types and Descriptions**
 
-     - Add P1 task for package structure refactoring
-     - Update backlog item format
+   Each PR type has specific requirements and formats. Choose the appropriate type based on:
+   - Feature PR: New functionality or significant changes
+   - Backlog PR: Updates to project planning and tasks
+   - Documentation PR: Updates to any documentation
+   - Bug Fix PR: Corrections to existing functionality
 
-     Task: Backlog Update
-     AI: Yes"
-     git push origin docs/backlog-update-add-package-refactor
-     # Create PR using template
-     ```
+   **Priority Handling**:
+   1. Bug fixes affecting production (hotfix)
+   2. Feature PRs with dependencies
+   3. Documentation and backlog updates
+   4. Other changes
 
-3. **PR Template**
-   ```markdown
-   ## Description
-   Brief description of changes
+   **PR Size Guidelines**:
+   - Small (preferred): < 200 lines changed
+   - Medium: 200-500 lines changed
+   - Large: > 500 lines (consider splitting)
+   - Maximum files changed: 10
 
-   ## Task Reference
-   - Task: #P0-1-1
-   - AI Assisted: Yes/No
+   **Draft and WIP Guidelines**:
+   - Use draft PRs for work in progress
+   - Prefix commit messages with "WIP:" for incomplete changes
+   - Move to ready when all checks pass
+   - Draft PRs should still follow naming conventions
 
-   ## Acceptance Criteria
-   - [ ] Criterion 1
-   - [ ] Criterion 2
+   **Review Process**:
+   - Developer approval required for all changes
+   - AI agents can suggest improvements
+   - AI agents cannot approve PRs
+   - All comments must be addressed before merge
+
+   **Merge Conflict Resolution**:
+   ```bash
+   # Update your branch
+   git fetch origin
+   git checkout your-branch
+   git rebase origin/main
+   
+   # If conflicts occur
+   # 1. Fix conflicts in your editor
+   # 2. Stage resolved files
+   git add resolved-file.scala
+   # 3. Continue rebase
+   git rebase --continue
+   # 4. Force push (only for PR branches)
+   git push origin your-branch -f
+   ```
+
+   **Hotfix Process**:
+   1. Create branch from main: `hotfix/critical-fix`
+   2. Make minimal required changes
+   3. Full test suite must pass
+   4. Merge directly to main
+   5. Tag release if needed
+
+   a. **Feature PRs**
+   ```bash
+   # Branch naming: feature/P0-1-1-short-description
+   git checkout -b feature/P0-1-1-add-streaming
+   
+   # Commit message
+   git commit -m "[Feat] Add streaming response support" -m "- Implement streaming client
+   - Add progress indicators
+   - Handle partial responses
+   
+   Task: #P0-1-1
+   AI: Yes"
+
+   # Create PR
+   gh pr create --title "[Feat] Short description" --body "## Description
+   Brief overview of the feature.
+
+   ## Changes
+   - List specific implementation changes
+   - Include architectural decisions
+   - Note any dependency updates
 
    ## Testing
    - [ ] Unit tests added/updated
@@ -104,9 +146,120 @@ AI: Yes/No
 
    ## Documentation
    - [ ] Code comments updated
-   - [ ] README updated
-   - [ ] BACKLOG.md status updated
+   - [ ] README updated if needed
+   - [ ] API docs updated if needed
+
+   ## Size
+   - [ ] Changes are appropriately scoped
+   - [ ] Large changes are split into smaller PRs
+   - [ ] Number of files changed: [X]
+
+   Task: #P0-1-1
+   AI: Yes/No"
    ```
+
+   b. **Backlog Updates**
+   ```bash
+   # Branch naming: docs/backlog-update-description
+   git checkout -b docs/backlog-update-add-metrics
+
+   # Commit message
+   git commit -m "[Docs] Update backlog with metrics tasks" -m "- Add P3 metrics collection tasks
+   - Update task priorities
+   - Add technical notes
+   
+   Task: Backlog Update
+   AI: Yes"
+
+   # Create PR
+   gh pr create --title "[Docs] Update backlog" --body "## Description
+   Brief overview of backlog changes.
+
+   ## Changes
+   - List specific changes to BACKLOG.md
+   - Note any related doc updates
+
+   ## Validation
+   - [ ] Follows backlog format
+   - [ ] Items properly categorized
+   - [ ] Clear acceptance criteria
+   - [ ] Technical notes included
+   - [ ] Effort estimated
+
+   Task: Backlog Update
+   AI: Yes/No"
+   ```
+
+   c. **Documentation Updates**
+   ```bash
+   # Branch naming: docs/update-type-description
+   git checkout -b docs/update-api-docs
+
+   # Commit message
+   git commit -m "[Docs] Update API documentation" -m "- Add streaming API docs
+   - Update quick start guide
+   - Add usage examples
+   
+   Task: Documentation
+   AI: Yes"
+
+   # Create PR
+   gh pr create --title "[Docs] Update documentation" --body "## Description
+   Brief overview of documentation changes.
+
+   ## Changes
+   - List updated documents
+   - Note significant changes
+
+   ## Validation
+   - [ ] Technical accuracy verified
+   - [ ] Grammar and style checked
+   - [ ] Links verified
+   - [ ] Examples tested
+
+   Task: Documentation
+   AI: Yes/No"
+   ```
+
+   d. **Bug Fixes**
+   ```bash
+   # Branch naming: bugfix/short-description or hotfix/short-description
+   git checkout -b bugfix/fix-connection-timeout
+
+   # Commit message
+   git commit -m "[Fix] Fix connection timeout issues" -m "- Increase retry delay
+   - Add connection pooling
+   - Improve error messages
+   
+   Task: #P0-1-1
+   AI: Yes"
+
+   # Create PR
+   gh pr create --title "[Fix] Short description" --body "## Description
+   Brief overview of the bug and fix.
+
+   ## Problem
+   - Describe the bug
+   - Note impact and scope
+
+   ## Solution
+   - Explain the fix
+   - Note any limitations
+
+   ## Testing
+   - [ ] Regression tests added
+   - [ ] Fix verified
+   - [ ] No new issues introduced
+
+   Task: #P0-1-1
+   AI: Yes/No"
+   ```
+
+   **Required Reviewers**:
+   - Code changes: At least one senior developer
+   - Documentation: Technical writer or maintainer
+   - Backlog: Project manager or tech lead
+   - Critical fixes: Two senior developers
 
 3. **Review Process**
    - At least one approval required
@@ -238,3 +391,31 @@ git rebase origin/develop
 
 # Create PR
 git push origin feature/P0-1-1-remove-client-layer
+```
+
+## Cherry-pick Guidelines
+```bash
+# Cherry-pick a commit to another branch
+git checkout target-branch
+git cherry-pick commit-hash
+
+# If conflicts occur
+git add resolved-files
+git cherry-pick --continue
+
+# Push changes
+git push origin target-branch
+```
+
+## PR Update Process
+```bash
+# Update PR with latest main
+git checkout your-branch
+git fetch origin
+git rebase origin/main
+git push origin your-branch -f
+
+# Update PR with fixup commits
+git commit --fixup=original-commit-hash
+git rebase -i --autosquash original-commit-hash^
+git push origin your-branch -f
