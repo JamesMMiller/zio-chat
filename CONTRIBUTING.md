@@ -1,123 +1,203 @@
 # Contributing Guide
 
-## AI-Assisted Development Workflow
+## Overview
 
-### Using the Backlog with AI
+This project uses AI-assisted development while maintaining high code quality standards. All contributions should follow the established patterns and guidelines.
 
-1. **Selecting a Task**
-   - Choose a single item from BACKLOG.md
-   - Ensure all prerequisites are completed
-   - Work on one priority level at a time (complete P0 before P1)
+## Key Documents
 
-2. **Crafting Effective Prompts**
+Before contributing, familiarize yourself with:
+- `STYLE_AND_PROMPTS.md` - Code style and AI interaction guidelines
+- `GIT.md` - Git workflow and commit standards
+- `BACKLOG.md` - Project roadmap and task tracking
+- `README.md` - Project overview and setup
 
-   Structure your prompts using this template:
+## Development Workflow
+
+1. **Task Selection**
+   - Choose tasks from BACKLOG.md
+   - Follow priority order (P0 → P1 → P2)
+   - Ensure prerequisites are completed
+   - Update task status in BACKLOG.md
+
+2. **Development Process**
+   - Create feature branch from develop
+   - Follow style guide in STYLE_AND_PROMPTS.md
+   - Use AI assistance effectively
+   - Write tests for new features
+   - Update documentation
+
+3. **Code Quality**
+   - Follow Scala 3 best practices
+   - Maintain type safety
+   - Handle errors appropriately
+   - Add proper logging
+   - Include documentation
+
+## AI-Assisted Development
+
+### Using the AI Agent
+
+1. **Task Preparation**
    ```
    Task: [Backlog item title]
    
    Context:
-   - Current state: [Brief description of current implementation]
-   - Dependencies: [List relevant files/components]
-   - Constraints: [Any technical or business constraints]
+   - Current state: [Brief description]
+   - Dependencies: [List relevant files]
+   - Constraints: [Technical/business]
    
    Request:
    [Specific implementation request]
    
    Expected Outcome:
-   - [List expected deliverables]
+   - [List deliverables]
    - [Include acceptance criteria]
    ```
 
-3. **Example Prompts**
+2. **Best Practices**
+   - Be specific in requests
+   - Provide context
+   - Set clear boundaries
+   - Define success criteria
+   - Focus on single tasks
+   - Use incremental changes
 
-   Good prompt:
-   ```
-   Task: Remove redundant Client.default layer from Main
-   
-   Context:
-   - Current state: Main.scala provides Client.default layer which is already provided by GeminiService
-   - Dependencies: Main.scala, GeminiService.scala
-   - Constraints: Must maintain ZIO layer composition
-   
-   Request:
-   Update Main.scala to remove the redundant Client.default layer while maintaining proper service composition
-   
-   Expected Outcome:
-   - Cleaned up layer composition in Main.scala
-   - No changes to functionality
-   - Warning about redundant layer resolved
-   ```
+3. **Review Process**
+   - Verify changes match requirements
+   - Check for side effects
+   - Validate best practices
+   - Confirm acceptance criteria
 
-   Poor prompt:
-   ```
-   Fix the Main.scala file
-   ```
+## Local Development
 
-4. **Best Practices**
+1. **Prerequisites**
+   - JDK 17+
+   - SBT 1.9.7+
+   - Git
+   - IDE (recommended: IntelliJ with Scala plugin)
 
-   - **Be Specific**: Include exact file names and paths
-   - **Provide Context**: Include relevant code snippets or file contents
-   - **Set Boundaries**: Clearly define what should and shouldn't be changed
-   - **Define Success**: Include clear acceptance criteria
-   - **One Task**: Focus on a single backlog item per prompt
-   - **Incremental Changes**: Break large tasks into smaller prompts
+2. **Environment Setup**
+   ```bash
+   # Clone repository
+   git clone <repo-url>
+   cd gemini-zio-project
 
-5. **Review Process**
+   # Set up environment
+   cp .env.example .env
+   # Edit .env with your settings
 
-   Before implementing AI suggestions:
-   - Verify the proposed changes match the backlog item
-   - Check for unintended side effects
-   - Ensure best practices are maintained
-   - Validate against acceptance criteria
-
-6. **Documentation Updates**
-
-   After implementing changes:
-   - Update BACKLOG.md to mark completed items
-   - Document any new configurations or dependencies
-   - Update relevant documentation
-   - Add comments explaining complex logic
-
-7. **Testing Requirements**
-
-   Each AI-assisted change should:
-   - Include or update relevant tests
-   - Maintain or improve code coverage
-   - Include regression testing
-   - Document test scenarios
-
-## Commit Guidelines
-
-1. **Commit Messages**
-   ```
-   [Type] Short description
-   
-   - Detailed change 1
-   - Detailed change 2
-   
-   Task: #[Backlog item number]
-   AI: Yes/No (indicate if changes were AI-assisted)
+   # Install git hooks
+   cp .git-hooks/* .git/hooks/
+   chmod +x .git/hooks/*
    ```
 
-2. **Types**
-   - `[Feat]` New features
-   - `[Fix]` Bug fixes
-   - `[Refactor]` Code restructuring
-   - `[Docs]` Documentation updates
-   - `[Test]` Test additions/updates
-   - `[Config]` Configuration changes
+3. **Build and Test**
+   ```bash
+   sbt clean compile
+   sbt test
+   ```
+
+## Guidelines
+
+### Debugging
+- Use structured logging
+- Include correlation IDs
+- Handle all error cases
+- Test error scenarios
+
+### Performance
+- Avoid blocking operations
+- Use appropriate data structures
+- Consider memory usage
+- Profile before optimizing
+
+### Security
+- Validate inputs
+- Secure configurations
+- Regular dependency updates
+- Proper error messages
+
+## Pull Request Process
+
+1. **Preparation**
+   - Update from develop
+   - Run all tests
+   - Update documentation
+   - Check acceptance criteria
+
+2. **Creating PR (GitHub CLI)**
+   ```bash
+   # Create PR template
+   cat > .pr-template.md << 'EOF'
+   ## Description
+   Brief description of changes
+
+   ## Task Reference
+   - Task: #[ID]
+   - AI Assisted: Yes/No
+
+   ## Acceptance Criteria
+   - [ ] Criterion 1
+   - [ ] Criterion 2
+
+   ## Testing
+   - [ ] Unit tests
+   - [ ] Integration tests
+   - [ ] Manual testing
+
+   ## Documentation
+   - [ ] Code comments
+   - [ ] README updates
+   - [ ] BACKLOG.md updates
+   EOF
+
+   # Push your branch
+   git push -u origin feature/your-branch-name
+
+   # Create PR using gh cli
+   gh pr create \
+     --title "[Type] Short description" \
+     --body-file .pr-template.md
+
+   # Clean up template
+   rm .pr-template.md
+   ```
+
+3. **Review Process**
+   ```bash
+   # Check PR status
+   gh pr status
+
+   # List PRs
+   gh pr list
+
+   # Review PR
+   gh pr review [PR-number] --approve
+
+   # Merge PR (when approved)
+   gh pr merge [PR-number] --squash --delete-branch
+   ```
 
 ## Getting Help
 
-1. **Refining Prompts**
-   - If the AI response isn't helpful, try:
-     - Breaking down the task further
-     - Providing more specific context
-     - Clarifying the expected outcome
-     - Including relevant error messages
+1. **Common Issues**
+   - Check existing documentation
+   - Review similar PRs
+   - Ask in discussions
+   - Use AI assistance effectively
 
-2. **Common Issues**
-   - AI suggests invalid Scala syntax: Specify Scala 3 syntax requirement
-   - AI misses dependencies: List all relevant files
-   - AI makes too many changes: Break task into smaller prompts
-   - AI generates incomplete code: Specify need for complete, compilable solution 
+2. **AI Assistance Tips**
+   - Break down complex tasks
+   - Provide clear context
+   - Include error messages
+   - Specify exact requirements
+
+## Documentation
+
+Always update:
+1. Code comments
+2. README.md for user-facing changes
+3. BACKLOG.md for task status
+4. CHANGELOG.md for releases
+5. API documentation

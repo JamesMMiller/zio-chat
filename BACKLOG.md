@@ -5,6 +5,12 @@
 - ✅ Completed
 - ⭕ Not Started
 
+## Implementation Guidelines
+- Follow style guide in STYLE_AND_PROMPTS.md
+- Use task templates for implementation
+- Follow git workflow from GIT.md
+- Update documentation per CONTRIBUTING.md
+
 ## High Priority (P0)
 
 ### P0-1: Project Structure and Dependencies Cleanup
@@ -23,12 +29,12 @@
      - Initial commit on main branch
      - Develop branch created
 
-2. **P0-1.2: Remove Redundant Client Layer**
+2. **P0-1.2: Remove Redundant Client Layer** ✅
    - Files: Main.scala, GeminiService.scala
    - Acceptance Criteria:
-     - No redundant layer warnings in compilation
-     - All tests passing
-     - No changes to application behavior
+     - No redundant layer warnings in compilation ✅
+     - All tests passing ✅
+     - No changes to application behavior ✅
 
 3. **P0-1.3: Add Scalafmt Configuration**
    - Files: .scalafmt.conf
@@ -85,6 +91,48 @@
      - Test scenarios covered
      - Documentation added
 
+### P0-4: CI/CD and Security Setup
+**Status**: ⭕ Not Started
+**Prerequisites**: P0-1
+
+**Subtasks**:
+1. **P0-4.1: Setup CI Pipeline**
+   - Files: .github/workflows/
+   - Acceptance Criteria:
+     - GitHub Actions workflow configured
+     - Build and test automation
+     - Code quality checks
+     - Coverage reporting
+
+2. **P0-4.2: Security Baseline**
+   - Files: security.md, .github/
+   - Acceptance Criteria:
+     - Security policy defined
+     - Dependency scanning
+     - SAST configuration
+     - Secret scanning setup
+
+3. **P0-4.3: CD Pipeline**
+   - Files: .github/workflows/
+   - Acceptance Criteria:
+     - Automated releases
+     - Environment deployments
+     - Version management
+     - Release notes automation
+
+### P0-5: Performance and Monitoring
+**Status**: ⭕ Not Started
+**Prerequisites**: P0-1, P0-2
+
+**Subtasks**:
+1. **P0-5.1: Performance Benchmarks**
+   - Files: src/test/scala/benchmarks/
+   - Acceptance Criteria:
+     - JMH benchmarks setup
+     - Key operations measured
+     - Performance baselines established
+     - CI integration for benchmarks
+
 ## Medium Priority (P1)
 
 ### P1-1: Enhanced Configuration Management
@@ -121,15 +169,6 @@
      - ScalaDoc coverage >80%
      - API documentation complete
      - Examples added
-
-## Implementation Notes
-- Follow git workflow defined in GIT.md
-- Create feature branches from develop
-- Use PR template for all changes
-- Reference task IDs in commits and PRs
-- Mark AI-assisted changes in commits
-- Updates to BACKLOG.md should mark completed tasks with ✅
-- Each PR should update relevant documentation
 
 ## Definition of Done
 - Code changes reviewed and approved

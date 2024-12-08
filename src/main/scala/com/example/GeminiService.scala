@@ -47,7 +47,8 @@ case class GeminiService(config: GeminiConfig):
   }
 
   def generateContent(prompt: String): IO[GeminiError, String] = ZIO.scoped {
-    for
+    (for
+      _ <- ZIO.logDebug(s"Starting content generation with prompt: ${prompt.take(50)}...")
       client <- ZIO.service[Client]
       userMessage = GeminiContent(List(GeminiPart(prompt)), "user")
       _ = history = history :+ userMessage
@@ -56,19 +57,24 @@ case class GeminiService(config: GeminiConfig):
         maxOutputTokens = Some(config.maxTokens)
       )
       request = GeminiRequest(history, Some(generationConfig))
+      _ <- ZIO.logDebug(s"Request payload: ${request.toJson}")
       url <- ZIO.fromEither(URL.decode(
         s"https://generativelanguage.googleapis.com/v1/models/${config.model}:generateContent?key=${config.apiKey}"
       )).mapError(e => NetworkError(e))
+      _ <- ZIO.logDebug(s"Making API request to: ${url.toString.split("\\?").head}")
       response <- client.request(
         Request.post(
           url,
           Body.fromString(request.toJson)
         ).addHeader(Header.ContentType(MediaType.application.json))
-      ).mapError(NetworkError.apply)
-        .timeoutFail(NetworkError(new TimeoutException("Request timed out")))(Duration.fromScala(config.client.timeout))
+      ).retry(Schedule.exponential(1.second) && Schedule.recurs(3))
+      .mapError(NetworkError.apply)
+      .timeoutFail(NetworkError(new TimeoutException("Request timed out")))(Duration.fromScala(config.client.timeout))
+      _ <- ZIO.logDebug(s"Received response with status: ${response.status.code}")
       body <- response.body.asString.mapError(NetworkError.apply)
+      _ <- ZIO.logDebug(s"Response body: ${body.take(100)}...")
       geminiResponse <- ZIO.fromEither(body.fromJson[GeminiResponse])
-        .mapError(e => ParseError(e))
+        .mapError(e => ParseError(s"Failed to parse response: $e\nResponse: $body"))
       _ <- ZIO.when(response.status.code >= 400)(
         ZIO.fail(ApiError(s"API error: ${response.status.code} - $body"))
       )
@@ -78,7 +84,11 @@ case class GeminiService(config: GeminiConfig):
       assistantMessage = geminiResponse.candidates.head.content
       _ = history = history :+ assistantMessage
       text = assistantMessage.parts.head.text
-    yield text
+      _ <- ZIO.logDebug("Content generation completed successfully")
+    yield text).catchAll(err => 
+      ZIO.logError(s"Error in content generation: $err") *> 
+      ZIO.fail(err)
+    )
   }.provideLayer(Client.default.mapError(NetworkError.apply))
 
 object GeminiService:

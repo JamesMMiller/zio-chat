@@ -108,6 +108,89 @@ AI: Yes/No
    - Update develop
    - Clean up branches
 
+## Security Guidelines
+
+### Sensitive Data
+- Never commit secrets or credentials
+- Use environment variables for sensitive data
+- Configure git-secrets for automated scanning
+- Use .gitignore for sensitive files
+- Regular audit of git history
+
+### Branch Protection Rules
+1. **Main Branch**
+   - Require pull request reviews
+   - Require status checks to pass
+   - Require signed commits
+   - No force push allowed
+   - Include administrators
+
+2. **Develop Branch**
+   - Require pull request reviews
+   - Require status checks to pass
+   - Allow force push with lease
+   - Protected from deletion
+
+### Git Hooks
+1. **Pre-commit Hooks**
+   ```bash
+   # .git/hooks/pre-commit
+   - Scala formatting check
+   - Unit tests
+   - Security scanning
+   - TODO/FIXME check
+   ```
+
+2. **Pre-push Hooks**
+   ```bash
+   # .git/hooks/pre-push
+   - Integration tests
+   - Performance benchmarks
+   - Coverage check
+   ```
+
+3. **Commit-msg Hooks**
+   ```bash
+   # .git/hooks/commit-msg
+   - Format validation
+   - Task ID verification
+   - AI assistance marking
+   ```
+
+## Changelog Guidelines
+
+### Format
+```markdown
+# Changelog
+All notable changes to this project will be documented in this file.
+
+## [Unreleased]
+### Added
+- New features
+
+### Changed
+- Changes in existing functionality
+
+### Deprecated
+- Soon-to-be removed features
+
+### Removed
+- Removed features
+
+### Fixed
+- Bug fixes
+
+### Security
+- Security fixes
+```
+
+### Rules
+1. Keep a changelog entry for every user-facing change
+2. Use semantic versioning
+3. Include migration notes when needed
+4. Link to relevant issues/PRs
+5. Date each release
+
 ## Git Commands Quick Reference
 
 ```bash
