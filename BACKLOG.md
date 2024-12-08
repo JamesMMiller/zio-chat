@@ -19,6 +19,10 @@
   - Scala 3 formatting rules
   - Code style configuration
   - SBT plugin integration
+- [x] Improve documentation
+  - Added scaladoc comments
+  - Added architecture decision records (ADRs)
+  - Added API documentation
 
 ## In Progress 🚧
 
@@ -27,6 +31,31 @@
   - Implement streaming client
   - Add progress indicators
   - Handle partial responses
+
+### P1 - Code Quality
+- [ ] Package Structure Refactoring
+  - **Scope**: 
+    - Replace `com.example` with `io.github.jamesmmiller.ziochat`
+    - Update all imports and references
+    - Update build.sbt organization
+    - Update documentation examples
+  - **Dependencies**: None
+  - **Acceptance Criteria**:
+    - [ ] Update build.sbt organization to `io.github.jamesmmiller`
+    - [ ] Update all package declarations to `io.github.jamesmmiller.ziochat`
+    - [ ] Update all import statements
+    - [ ] Update documentation code examples
+    - [ ] All tests passing
+    - [ ] Application runs successfully
+  - **Technical Notes**:
+    - Affects all source files
+    - Requires careful testing to ensure no broken imports
+    - Consider using scalafix for automated renaming
+    - Follow Scala package naming conventions:
+      - Lowercase only
+      - Reverse domain name notation
+      - Project-specific suffix
+  - **Estimated Effort**: Medium
 
 ## Planned 📋
 
@@ -38,10 +67,6 @@
 
 ### P2 - Developer Experience
 - [ ] Add scalafix rules
-- [ ] Improve documentation
-  - Add scaladoc comments
-  - Add architecture decision records (ADRs)
-  - Add API documentation
 
 ### P3 - Performance & Monitoring
 - [ ] Add metrics collection

@@ -20,6 +20,21 @@ Before contributing, familiarize yourself with:
    - Ensure prerequisites are completed
    - Update task status in BACKLOG.md
 
+   **Backlog Item Format**
+   ```markdown
+   ### Priority Level (P0/P1/P2/P3)
+   - [ ] Task Title
+     - **Scope**: What's included/excluded
+     - **Dependencies**: Required tasks/components
+     - **Acceptance Criteria**:
+       - [ ] Criterion 1
+       - [ ] Criterion 2
+     - **Technical Notes**:
+       - Implementation details
+       - Architecture considerations
+     - **Estimated Effort**: Small/Medium/Large
+   ```
+
 2. **Development Process**
    - Create feature branch from develop
    - Follow style guide in STYLE_AND_PROMPTS.md
