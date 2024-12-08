@@ -65,3 +65,9 @@ The project includes several types of tests:
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines. 
+
+### Pull Request Process
+1. Use the provided PR template when creating pull requests
+2. Follow the conventional commits specification
+3. Ensure all tests are passing
+4. Update documentation as needed 
