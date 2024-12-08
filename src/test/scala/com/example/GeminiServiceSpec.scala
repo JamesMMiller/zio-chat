@@ -12,6 +12,7 @@ import com.example.client.GeminiClient
 import com.example.service.*
 
 object GeminiServiceSpec extends ZIOSpecDefault:
+
   // Test fixtures
   private val testConfig = GeminiConfig(
     apiKey = "test-key",
@@ -58,12 +59,12 @@ object GeminiServiceSpec extends ZIOSpecDefault:
         clientTimeout = Duration.apply(30, "seconds")
       )
 
-      val testPrompt = "test message"
+      val testPrompt       = "test message"
       val expectedResponse = "Test response"
-      val mockClient = createMockClient(ZIO.succeed(createSuccessResponse(expectedResponse)))
+      val mockClient       = createMockClient(ZIO.succeed(createSuccessResponse(expectedResponse)))
 
-      for
-        result <- ZIO.serviceWithZIO[GeminiService](_.generateContent(testPrompt))
+      for result <- ZIO
+          .serviceWithZIO[GeminiService](_.generateContent(testPrompt))
           .provide(
             ZLayer.succeed(testConfig),
             ZLayer.succeed(mockClient),
@@ -72,14 +73,13 @@ object GeminiServiceSpec extends ZIOSpecDefault:
           )
       yield assertTrue(result == expectedResponse)
     },
-
     test("should propagate API errors") {
-      val testPrompt = "test message"
+      val testPrompt    = "test message"
       val expectedError = ApiError("Test error")
-      val mockClient = createMockClient(ZIO.fail(expectedError))
+      val mockClient    = createMockClient(ZIO.fail(expectedError))
 
-      for
-        result <- ZIO.serviceWithZIO[GeminiService](_.generateContent(testPrompt))
+      for result <- ZIO
+          .serviceWithZIO[GeminiService](_.generateContent(testPrompt))
           .provide(
             ZLayer.succeed(testConfig),
             ZLayer.succeed(mockClient),
@@ -89,9 +89,8 @@ object GeminiServiceSpec extends ZIOSpecDefault:
           .exit
       yield assert(result)(fails(equalTo(expectedError)))
     },
-
     test("should handle content blocking") {
-      val testPrompt = "test message"
+      val testPrompt  = "test message"
       val blockReason = "Content blocked"
       val blockedResponse = GeminiResponse(
         candidates = List(
@@ -106,8 +105,8 @@ object GeminiServiceSpec extends ZIOSpecDefault:
       )
       val mockClient = createMockClient(ZIO.succeed(blockedResponse))
 
-      for
-        result <- ZIO.serviceWithZIO[GeminiService](_.generateContent(testPrompt))
+      for result <- ZIO
+          .serviceWithZIO[GeminiService](_.generateContent(testPrompt))
           .provide(
             ZLayer.succeed(testConfig),
             ZLayer.succeed(mockClient),
@@ -117,32 +116,36 @@ object GeminiServiceSpec extends ZIOSpecDefault:
           .exit
       yield assert(result)(fails(equalTo(ApiError(s"Content blocked: $blockReason"))))
     },
-
     suite("conversation history")(
       test("should maintain conversation history") {
         for
-          mockClient <- ZIO.succeed(createMockClient(ZIO.succeed(createSuccessResponse("Response"))))
-          service <- ZIO.service[GeminiService].provide(
-            ZLayer.succeed(testConfig),
-            ZLayer.succeed(mockClient),
-            ConversationManager.layer,
-            GeminiService.layer
-          )
+          mockClient <-
+            ZIO.succeed(createMockClient(ZIO.succeed(createSuccessResponse("Response"))))
+          service <- ZIO
+            .service[GeminiService]
+            .provide(
+              ZLayer.succeed(testConfig),
+              ZLayer.succeed(mockClient),
+              ConversationManager.layer,
+              GeminiService.layer
+            )
           _      <- service.generateContent("First message")
           _      <- service.generateContent("Second message")
           result <- service.generateContent("Third message")
         yield assertTrue(result == "Response")
       },
-
       test("should clear history when requested") {
         for
-          mockClient <- ZIO.succeed(createMockClient(ZIO.succeed(createSuccessResponse("Response"))))
-          service <- ZIO.service[GeminiService].provide(
-            ZLayer.succeed(testConfig),
-            ZLayer.succeed(mockClient),
-            ConversationManager.layer,
-            GeminiService.layer
-          )
+          mockClient <-
+            ZIO.succeed(createMockClient(ZIO.succeed(createSuccessResponse("Response"))))
+          service <- ZIO
+            .service[GeminiService]
+            .provide(
+              ZLayer.succeed(testConfig),
+              ZLayer.succeed(mockClient),
+              ConversationManager.layer,
+              GeminiService.layer
+            )
           _      <- service.generateContent("Initial message")
           _      <- service.clearHistory
           result <- service.generateContent("New message")

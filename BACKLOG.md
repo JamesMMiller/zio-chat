@@ -76,6 +76,35 @@
       - Reverse domain name notation
       - Project-specific suffix
   - **Estimated Effort**: Medium
+- [ ] Improve Test Coverage
+  - **Scope**: 
+    - Increase overall test coverage
+    - Add missing test scenarios
+    - Add coverage thresholds to CI
+  - **Dependencies**: None
+  - **Acceptance Criteria**:
+    - [ ] GeminiServiceLive coverage > 80%
+      - Error handling scenarios
+      - Different response types
+      - Content blocking cases
+      - Retry scenarios
+    - [ ] GeminiModels coverage > 90%
+      - JSON encoding/decoding tests
+      - Model validation tests
+      - Edge cases (empty content, null fields)
+    - [ ] Integration Tests
+      - Full request/response cycle
+      - Error propagation
+      - Configuration loading
+    - [ ] Add coverage thresholds to CI pipeline
+      - Minimum 80% overall coverage
+      - Fail build if coverage drops
+  - **Technical Notes**:
+    - Use scoverage for coverage reporting
+    - Add property-based testing for models
+    - Consider using test containers for integration tests
+    - Add coverage badges to README
+  - **Estimated Effort**: Medium
 
 ## Planned 📋
 

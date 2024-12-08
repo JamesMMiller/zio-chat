@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+env:
+  # Improve SBT performance
+  SBT_OPTS: >-
+    -Xmx2G
+    -XX:+UseG1GC
+    -XX:+UseStringDeduplication
+    -Xss2M
+  # Coursier cache optimization
+  COURSIER_CACHE: ~/.cache/coursier
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'sbt'
+          
+      - name: Cache Coursier
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/coursier
+            ~/.sbt
+          key: ${{ runner.os }}-sbt-coursier-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}-${{ hashFiles('project/plugins.sbt') }}
+          restore-keys: |
+            ${{ runner.os }}-sbt-coursier-
+          
+      - name: Check code quality
+        run: |
+          sbt -v scalafmtCheckAll "scalafixAll --check"
+        
+      - name: Run tests
+        run: |
+          sbt -v clean coverage test coverageReport
+        
+      - name: Upload coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: target/scala-*/scoverage-report
+          retention-days: 7 

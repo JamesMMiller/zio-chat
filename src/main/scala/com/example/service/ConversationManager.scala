@@ -8,18 +8,16 @@ trait ConversationManager:
   def getHistory: UIO[List[GeminiContent]]
   def clear: UIO[Unit]
 
-case class ConversationManagerLive() extends ConversationManager:
-  private var history: List[GeminiContent] = List.empty
+case class ConversationManagerLive(history: Ref[List[GeminiContent]]) extends ConversationManager:
+  def addMessage(content: GeminiContent): UIO[Unit] = history.update(_ :+ content)
 
-  def addMessage(content: GeminiContent): UIO[Unit] = ZIO.succeed {
-    history = history :+ content
-  }
+  def getHistory: UIO[List[GeminiContent]] = history.get
 
-  def getHistory: UIO[List[GeminiContent]] = ZIO.succeed(history)
-
-  def clear: UIO[Unit] = ZIO.succeed {
-    history = List.empty
-  }
+  def clear: UIO[Unit] = history.set(List.empty)
 
 object ConversationManager:
-  val layer: ULayer[ConversationManager] = ZLayer.succeed(ConversationManagerLive()) 
+
+  val layer: ULayer[ConversationManager] = ZLayer {
+    for history <- Ref.make(List.empty[GeminiContent])
+    yield ConversationManagerLive(history)
+  }

@@ -6,6 +6,7 @@ import zio.test.Assertion.*
 import com.example.domain.*
 
 object ConversationManagerSpec extends ZIOSpecDefault:
+
   def spec = suite("ConversationManager")(
     test("should start with empty history") {
       for
@@ -13,7 +14,6 @@ object ConversationManagerSpec extends ZIOSpecDefault:
         history <- manager.getHistory
       yield assertTrue(history.isEmpty)
     }.provide(ConversationManager.layer),
-
     test("should add messages to history") {
       val message1 = GeminiContent(List(GeminiPart("Hello")), "user")
       val message2 = GeminiContent(List(GeminiPart("Hi there")), "model")
@@ -27,7 +27,6 @@ object ConversationManagerSpec extends ZIOSpecDefault:
         history == List(message1, message2)
       )
     }.provide(ConversationManager.layer),
-
     test("should maintain message order") {
       val messages = List(
         GeminiContent(List(GeminiPart("1")), "user"),
@@ -44,7 +43,6 @@ object ConversationManagerSpec extends ZIOSpecDefault:
         history.map(_.parts.head.text) == List("1", "2", "3")
       )
     }.provide(ConversationManager.layer),
-
     test("should clear history") {
       val message = GeminiContent(List(GeminiPart("Test")), "user")
 
@@ -55,7 +53,6 @@ object ConversationManagerSpec extends ZIOSpecDefault:
         history <- manager.getHistory
       yield assertTrue(history.isEmpty)
     }.provide(ConversationManager.layer),
-
     test("should handle multiple operations") {
       val message1 = GeminiContent(List(GeminiPart("First")), "user")
       val message2 = GeminiContent(List(GeminiPart("Second")), "model")
@@ -70,4 +67,4 @@ object ConversationManagerSpec extends ZIOSpecDefault:
         history == List(message2)
       )
     }.provide(ConversationManager.layer)
-  ) 
+  )
