@@ -45,3 +45,7 @@ temp/
 
 # Dependency specific
 null/
+
+# Coverage reports
+scala-*/
+scoverage-report/
