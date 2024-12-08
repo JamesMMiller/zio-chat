@@ -11,7 +11,7 @@ env:
   SBT_OPTS: >-
     -Xmx2G
     -XX:+UseG1GC
-    -XX:+CMSClassUnloadingEnabled
+    -XX:+UseStringDeduplication
     -Xss2M
   # Coursier cache optimization
   COURSIER_CACHE: ~/.cache/coursier
