@@ -1,9 +1,18 @@
 package com.example.config
 
-import com.typesafe.config.{Config, ConfigFactory}
 import zio.*
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import com.typesafe.config.ConfigFactory
+import scala.concurrent.duration.Duration
 import scala.jdk.DurationConverters.*
+
+case class GeminiConfig(
+    apiKey: String,
+    model: String,
+    temperature: Double,
+    maxTokens: Int,
+    retryConfig: RetryConfig,
+    clientTimeout: Duration
+)
 
 case class RetryConfig(
     maxAttempts: Int,
@@ -12,45 +21,37 @@ case class RetryConfig(
     backoffFactor: Double
 )
 
-case class ClientConfig(
-    retry: RetryConfig,
-    timeout: Duration
-)
-
-case class GeminiConfig(
-    apiKey: String,
-    model: String,
-    temperature: Double,
-    maxTokens: Int,
-    client: ClientConfig
-)
-
 object GeminiConfig:
+  private def loadConfig: IO[String, GeminiConfig] =
+    ZIO.attempt {
+      val config = ConfigFactory.load().getConfig("gemini")
+      val apiKey = Option(config.getString("api-key"))
+        .filter(_.nonEmpty)
+        .getOrElse(throw new RuntimeException(
+          """
+          |Missing Gemini API key! Please set it using one of:
+          |1. Environment variable: export GEMINI_API_KEY=your-key-here
+          |2. System property: -Dgemini.api-key=your-key-here
+          |3. Configuration file: gemini.api-key=your-key-here
+          |
+          |You can get an API key from: https://makersuite.google.com/app/apikey
+          |""".stripMargin))
 
-  def load: Task[GeminiConfig] = ZIO.attempt {
-    val config = ConfigFactory.load().getConfig("gemini")
-
-    val retryConfig =
-      val c = config.getConfig("client.retry")
-      RetryConfig(
-        maxAttempts = c.getInt("max-attempts"),
-        initialDelay = c.getDuration("initial-delay").toScala,
-        maxDelay = c.getDuration("max-delay").toScala,
-        backoffFactor = c.getDouble("backoff-factor")
+      val retryConfig = RetryConfig(
+        maxAttempts = config.getInt("client.retry.max-attempts"),
+        initialDelay = config.getDuration("client.retry.initial-delay").toScala,
+        maxDelay = config.getDuration("client.retry.max-delay").toScala,
+        backoffFactor = config.getDouble("client.retry.backoff-factor")
       )
 
-    val clientConfig = ClientConfig(
-      retry = retryConfig,
-      timeout = config.getDuration("client.timeout").toScala
-    )
+      GeminiConfig(
+        apiKey = apiKey,
+        model = config.getString("model"),
+        temperature = config.getDouble("temperature"),
+        maxTokens = config.getInt("max-tokens"),
+        retryConfig = retryConfig,
+        clientTimeout = config.getDuration("client.timeout").toScala
+      )
+    }.mapError(e => e.getMessage)
 
-    GeminiConfig(
-      apiKey = config.getString("api-key"),
-      model = config.getString("model"),
-      temperature = config.getDouble("temperature"),
-      maxTokens = config.getInt("max-tokens"),
-      client = clientConfig
-    )
-  }
-
-  val layer: ZLayer[Any, Throwable, GeminiConfig] = ZLayer.fromZIO(load)
+  val layer: ZLayer[Any, String, GeminiConfig] = ZLayer.fromZIO(loadConfig)
