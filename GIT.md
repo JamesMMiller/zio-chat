@@ -61,7 +61,30 @@ AI: Yes/No
    - Update documentation
    - Check acceptance criteria
 
-2. **PR Template**
+2. **Backlog Updates**
+   - Branch naming: `docs/backlog-update-description`
+   - Commit type: `[Docs]`
+   - PR can be merged directly to main if only updating BACKLOG.md
+   - Must follow backlog item format from CONTRIBUTING.md
+   - Requires one reviewer approval
+   - Example workflow:
+     ```bash
+     git checkout main
+     git checkout -b docs/backlog-update-add-package-refactor
+     # Edit BACKLOG.md
+     git add BACKLOG.md
+     git commit -m "[Docs] Add package refactoring task to backlog
+
+     - Add P1 task for package structure refactoring
+     - Update backlog item format
+
+     Task: Backlog Update
+     AI: Yes"
+     git push origin docs/backlog-update-add-package-refactor
+     # Create PR using template
+     ```
+
+3. **PR Template**
    ```markdown
    ## Description
    Brief description of changes
