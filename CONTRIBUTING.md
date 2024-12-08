@@ -54,6 +54,14 @@ Before contributing, familiarize yourself with:
 ### Using the AI Agent
 
 1. **Task Preparation**
+   - Check for open PRs:
+     ```bash
+     gh pr list
+     ```
+   - If PRs exist, review and handle them before starting new work
+   - Select task from BACKLOG.md following priority order
+
+2. **Task Format**
    ```
    Task: [Backlog item title]
    
@@ -70,7 +78,7 @@ Before contributing, familiarize yourself with:
    - [Include acceptance criteria]
    ```
 
-2. **Best Practices**
+3. **Best Practices**
    - Be specific in requests
    - Provide context
    - Set clear boundaries
@@ -78,7 +86,7 @@ Before contributing, familiarize yourself with:
    - Focus on single tasks
    - Use incremental changes
 
-3. **Review Process**
+4. **Review Process**
    - Verify changes match requirements
    - Check for side effects
    - Validate best practices

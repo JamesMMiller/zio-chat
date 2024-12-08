@@ -23,6 +23,26 @@
   - Added scaladoc comments
   - Added architecture decision records (ADRs)
   - Added API documentation
+- [ ] Add scalafix rules
+- [ ] GitHub Actions CI Pipeline
+  - **Scope**: 
+    - Set up GitHub Actions workflow for CI
+    - Implement test automation
+    - Add code quality checks
+  - **Dependencies**: None
+  - **Acceptance Criteria**:
+    - [ ] Configure GitHub Actions workflow
+    - [ ] Run all tests on PR and main
+    - [ ] Run scalafmt checks
+    - [ ] Run scalafix checks (when added)
+    - [ ] Cache dependencies for faster builds
+    - [ ] Add build status badge to README
+  - **Technical Notes**:
+    - Use scala-steward for dependency updates
+    - Consider using coursier for faster dependency resolution
+    - Add separate jobs for different Scala versions if needed
+    - Configure test result reporting
+  - **Estimated Effort**: Medium
 
 ## In Progress 🚧
 
