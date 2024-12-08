@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'sbt'
+          
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: | 
+            ~/.ivy2/cache
+            ~/.sbt
+            ~/.coursier
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-sbt-
+          
+      - name: Check formatting
+        run: sbt scalafmtCheckAll
+        
+      - name: Check scalafix rules
+        run: |
+          sbt "scalafixAll LeakingImplicitClassVal" "scalafixAll NoValInForComprehension" "scalafixAll DisableSyntax"
+          
+      - name: Run tests
+        run: sbt test
+        
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: | 
+            ~/.ivy2/cache
+            ~/.sbt
+            ~/.coursier
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-sbt- 
