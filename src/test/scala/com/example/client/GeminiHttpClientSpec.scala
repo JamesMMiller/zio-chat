@@ -9,6 +9,7 @@ import com.example.domain.*
 import scala.concurrent.duration.Duration
 
 object GeminiHttpClientSpec extends ZIOSpecDefault:
+
   val testConfig = GeminiConfig(
     apiKey = "test-key",
     model = "gemini-pro",
@@ -23,15 +24,14 @@ object GeminiHttpClientSpec extends ZIOSpecDefault:
     clientTimeout = Duration.apply(30, "seconds")
   )
 
-  private def createSuccessResponse(text: String) =
-    Response(
-      status = Status.Ok,
-      body = Body.fromString(text)
-    )
+  private def createSuccessResponse(text: String) = Response(
+    status = Status.Ok,
+    body = Body.fromString(text)
+  )
 
   def spec = suite("GeminiHttpClientSpec")(
     test("generateContent should handle successful response") {
-      val testPrompt = "test message"
+      val testPrompt   = "test message"
       val responseText = """{"text": "Test response"}"""
 
       for
@@ -39,4 +39,4 @@ object GeminiHttpClientSpec extends ZIOSpecDefault:
         result   <- ZIO.succeed("Test response")
       yield assertTrue(result == "Test response")
     }
-  ) 
+  )

@@ -12,6 +12,7 @@ trait GeminiClient:
   def generateContent(request: GeminiRequest): IO[GeminiError, GeminiResponse]
 
 case class GeminiHttpClient(config: GeminiConfig, httpClient: Client) extends GeminiClient:
+
   def generateContent(request: GeminiRequest): IO[GeminiError, GeminiResponse] =
     for
       url <- ZIO
@@ -44,30 +45,35 @@ case class GeminiHttpClient(config: GeminiConfig, httpClient: Client) extends Ge
       geminiResponse <- ZIO
         .fromEither(body.fromJson[GeminiResponse])
         .mapError(e => ParseError(s"Failed to parse response: $e\nResponse: $body"))
-      _ <- if geminiResponse.promptFeedback.exists(_.blockReason.isDefined) then
-        ZIO.fail(
-          ApiError(
-            s"Content blocked: ${geminiResponse.promptFeedback.flatMap(_.blockReason).getOrElse("Unknown reason")}"
+      _ <-
+        if geminiResponse.promptFeedback.exists(_.blockReason.isDefined) then
+          ZIO.fail(
+            ApiError(
+              s"Content blocked: ${geminiResponse.promptFeedback.flatMap(_.blockReason).getOrElse("Unknown reason")}"
+            )
           )
-        )
-      else ZIO.unit
+        else ZIO.unit
     yield geminiResponse
 
   def makeRequest(prompt: String): IO[GeminiError, String] =
-    for
-      response <- makeHttpRequest(prompt)
+    for response <- makeHttpRequest(prompt)
         .retry(
           Schedule.exponential(zio.Duration.fromScala(config.retryConfig.initialDelay)) &&
-          Schedule.recurWhile[GeminiError](e => e match { 
-            case NetworkError(_) => true 
-            case _ => false 
-          }).upTo(zio.Duration.fromScala(config.retryConfig.maxDelay))
+            Schedule
+              .recurWhile[GeminiError](e =>
+                e match
+                  case NetworkError(_) => true
+                  case _               => false
+              )
+              .upTo(zio.Duration.fromScala(config.retryConfig.maxDelay))
         )
     yield response
 
   private def makeHttpRequest(prompt: String): IO[GeminiError, String] =
     for
-      url <- ZIO.succeed(s"https://generativelanguage.googleapis.com/v1/models/${config.model}:generateContent?key=${config.apiKey}")
+      url <- ZIO.succeed(
+        s"https://generativelanguage.googleapis.com/v1/models/${config.model}:generateContent?key=${config.apiKey}"
+      )
       response <- ZIO.scoped {
         httpClient
           .request(
@@ -91,10 +97,10 @@ case class GeminiHttpClient(config: GeminiConfig, httpClient: Client) extends Ge
     yield body
 
 object GeminiHttpClient:
-  val layer: ZLayer[GeminiConfig & Client, Nothing, GeminiClient] =
-    ZLayer {
-      for
-        config <- ZIO.service[GeminiConfig]
-        client <- ZIO.service[Client]
-      yield GeminiHttpClient(config, client)
-    } 
+
+  val layer: ZLayer[GeminiConfig & Client, Nothing, GeminiClient] = ZLayer {
+    for
+      config <- ZIO.service[GeminiConfig]
+      client <- ZIO.service[Client]
+    yield GeminiHttpClient(config, client)
+  }

@@ -9,18 +9,15 @@ trait ConversationManager:
   def clear: UIO[Unit]
 
 case class ConversationManagerLive(history: Ref[List[GeminiContent]]) extends ConversationManager:
-  def addMessage(content: GeminiContent): UIO[Unit] =
-    history.update(_ :+ content)
+  def addMessage(content: GeminiContent): UIO[Unit] = history.update(_ :+ content)
 
-  def getHistory: UIO[List[GeminiContent]] =
-    history.get
+  def getHistory: UIO[List[GeminiContent]] = history.get
 
-  def clear: UIO[Unit] =
-    history.set(List.empty)
+  def clear: UIO[Unit] = history.set(List.empty)
 
 object ConversationManager:
+
   val layer: ULayer[ConversationManager] = ZLayer {
-    for
-      history <- Ref.make(List.empty[GeminiContent])
+    for history <- Ref.make(List.empty[GeminiContent])
     yield ConversationManagerLive(history)
   }

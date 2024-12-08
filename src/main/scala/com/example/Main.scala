@@ -26,9 +26,9 @@ object Main extends ZIOAppDefault:
 
   def handleError(error: Throwable): UIO[Unit] = error match
     case e: GeminiError => e match
-      case ApiError(message)   => printLine(s"\nAPI Error: $message").orDie
-      case NetworkError(cause) => printLine(s"\nNetwork Error: ${cause.getMessage}").orDie
-      case ParseError(message) => printLine(s"\nParse Error: $message").orDie
+        case ApiError(message)   => printLine(s"\nAPI Error: $message").orDie
+        case NetworkError(cause) => printLine(s"\nNetwork Error: ${cause.getMessage}").orDie
+        case ParseError(message) => printLine(s"\nParse Error: $message").orDie
     case e => printLine(s"\nUnexpected error: ${e.getMessage}").orDie
 
   def processCommand(prompt: String): ZIO[GeminiService, Nothing, Boolean] =
@@ -56,23 +56,22 @@ object Main extends ZIOAppDefault:
 
     loop.onInterrupt(printLine("\nChat session interrupted.").orDie)
 
-  def run: ZIO[Environment & (ZIOAppArgs & Scope), Any, Any] =
-    (for
-      _ <- printLine(
-        """
+  def run: ZIO[Environment & (ZIOAppArgs & Scope), Any, Any] = (for
+    _ <- printLine(
+      """
         |🤖 Welcome to Gemini Chat!
         |Type /help to see available commands.
         |""".stripMargin
-      ).orDie
-      _ <- chatLoop
-    yield ExitCode.success)
-      .onInterrupt(
-        printLine("\nGoodbye! Chat session ended.").orDie
-      )
-      .provideSome[Scope](
-        GeminiConfig.layer,
-        GeminiHttpClient.layer,
-        ConversationManager.layer,
-        GeminiService.layer,
-        ZClient.default
-      )
+    ).orDie
+    _ <- chatLoop
+  yield ExitCode.success)
+    .onInterrupt(
+      printLine("\nGoodbye! Chat session ended.").orDie
+    )
+    .provideSome[Scope](
+      GeminiConfig.layer,
+      GeminiHttpClient.layer,
+      ConversationManager.layer,
+      GeminiService.layer,
+      ZClient.default
+    )
