@@ -4,7 +4,7 @@ import zio.*
 import zio.test.*
 import zio.test.Assertion.*
 import zio.json.*
-import com.example.config.{GeminiConfig, RetryConfig}
+import com.example.config.{GeminiConfig, RetryConfig, ApiEndpointConfig}
 import scala.concurrent.duration.Duration
 import com.example.domain.*
 import com.example.domain.GeminiProtocol.given
@@ -25,7 +25,12 @@ object GeminiServiceSpec extends ZIOSpecDefault:
       maxDelay = Duration.apply(5, "seconds"),
       backoffFactor = 2.0
     ),
-    clientTimeout = Duration.apply(30, "seconds")
+    clientTimeout = Duration.apply(30, "seconds"),
+    endpoints = ApiEndpointConfig(
+      baseUrl = "https://generativelanguage.googleapis.com",
+      version = "v1",
+      generateContentEndpoint = "generateContent"
+    )
   )
 
   private def createMockClient(response: IO[GeminiError, GeminiResponse]) = new GeminiClient:
@@ -188,6 +193,58 @@ object GeminiServiceSpec extends ZIOSpecDefault:
       yield assertTrue(
         capturedRequest.exists(_.generationConfig.exists(_.maxOutputTokens.contains(customTokens)))
       )
+    },
+    test("should handle empty parts in response") {
+      val testPrompt = "test message"
+      val emptyPartsResponse = GeminiResponse(
+        candidates = List(
+          GeminiCandidate(
+            content = GeminiContent(
+              parts = List.empty,
+              role = "model"
+            )
+          )
+        ),
+        promptFeedback = None
+      )
+      val mockClient = createMockClient(ZIO.succeed(emptyPartsResponse))
+
+      for result <- ZIO
+          .serviceWithZIO[GeminiService](_.generateContent(testPrompt))
+          .provide(
+            ZLayer.succeed(testConfig),
+            ZLayer.succeed(mockClient),
+            ConversationManager.layer,
+            GeminiService.layer
+          )
+          .exit
+      yield assert(result)(fails(equalTo(ApiError("Invalid response format: empty parts"))))
+    },
+    test("should handle invalid response format") {
+      val testPrompt = "test message"
+      val invalidResponse = GeminiResponse(
+        candidates = List(
+          GeminiCandidate(
+            content = GeminiContent(
+              parts = List(GeminiPart(null)),
+              role = "model"
+            )
+          )
+        ),
+        promptFeedback = None
+      )
+      val mockClient = createMockClient(ZIO.succeed(invalidResponse))
+
+      for result <- ZIO
+          .serviceWithZIO[GeminiService](_.generateContent(testPrompt))
+          .provide(
+            ZLayer.succeed(testConfig),
+            ZLayer.succeed(mockClient),
+            ConversationManager.layer,
+            GeminiService.layer
+          )
+          .exit
+      yield assert(result)(fails(equalTo(ApiError("Invalid response format: null text"))))
     },
     suite("conversation history")(
       test("should maintain conversation history") {

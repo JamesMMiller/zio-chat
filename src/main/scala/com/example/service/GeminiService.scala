@@ -67,6 +67,8 @@ case class GeminiServiceLive(
       )
       _ <- ZIO.fail(ApiError("Empty response from model")).when(response.candidates.isEmpty)
       assistantMessage = response.candidates.head.content
+      _ <- ZIO.fail(ApiError("Invalid response format: empty parts")).when(assistantMessage.parts.isEmpty)
+      _ <- ZIO.fail(ApiError("Invalid response format: null text")).when(assistantMessage.parts.head.text == null)
       _ <- conversationManager.addMessage(assistantMessage)
       result = response.candidates.head.content.parts.head.text
     yield result
