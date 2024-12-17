@@ -35,19 +35,19 @@ final case class GeminiHttpClient(config: GeminiConfig, client: Client) extends 
       req      <- buildRequest(request)
       response <- client.request(req).mapError(NetworkError(_))
       body     <- response.body.asString.mapError(NetworkError(_))
-      _        <- ZIO.when(response.status.code >= 400)(
-                    ZIO.fail(ApiError(s"API error: ${response.status.code} - $body"))
-                  )
-      result   <- ZIO
-                    .fromEither(body.fromJson[GeminiResponse])
-                    .mapError(e => ParseError(s"Failed to parse response: $e\nResponse: $body"))
+      _ <- ZIO.when(response.status.code >= 400)(
+        ZIO.fail(ApiError(s"API error: ${response.status.code} - $body"))
+      )
+      result <- ZIO
+        .fromEither(body.fromJson[GeminiResponse])
+        .mapError(e => ParseError(s"Failed to parse response: $e\nResponse: $body"))
     yield result
 
 object GeminiHttpClient:
-  val layer: ZLayer[GeminiConfig & Client, Nothing, GeminiClient] =
-    ZLayer {
-      for
-        config <- ZIO.service[GeminiConfig]
-        client <- ZIO.service[Client]
-      yield GeminiHttpClient(config, client)
-    }
+
+  val layer: ZLayer[GeminiConfig & Client, Nothing, GeminiClient] = ZLayer {
+    for
+      config <- ZIO.service[GeminiConfig]
+      client <- ZIO.service[Client]
+    yield GeminiHttpClient(config, client)
+  }

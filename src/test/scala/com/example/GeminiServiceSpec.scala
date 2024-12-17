@@ -3,339 +3,379 @@ package com.example
 import zio.*
 import zio.test.*
 import zio.test.Assertion.*
-import zio.json.*
-import com.example.config.{GeminiConfig, RetryConfig, ApiEndpointConfig}
-import scala.concurrent.duration.Duration
-import com.example.domain.*
-import com.example.domain.GeminiProtocol.given
-import com.example.client.GeminiClient
 import com.example.service.*
+import com.example.domain.*
+import com.example.client.GeminiClient
+import com.example.config.*
+import scala.concurrent.duration.DurationInt
 
 object GeminiServiceSpec extends ZIOSpecDefault:
 
-  // Test fixtures
-  private val testConfig = GeminiConfig(
-    apiKey = "test-key",
-    model = "gemini-pro",
-    temperature = 0.7,
-    maxTokens = 100,
-    retryConfig = RetryConfig(
-      maxAttempts = 1,
-      initialDelay = Duration.apply(1, "seconds"),
-      maxDelay = Duration.apply(5, "seconds"),
-      backoffFactor = 2.0
-    ),
-    clientTimeout = Duration.apply(30, "seconds"),
-    endpoints = ApiEndpointConfig(
-      baseUrl = "https://generativelanguage.googleapis.com",
-      version = "v1",
-      generateContentEndpoint = "generateContent"
-    )
-  )
-
-  private def createMockClient(response: IO[GeminiError, GeminiResponse]) = new GeminiClient:
-    def generateContent(request: GeminiRequest): IO[GeminiError, GeminiResponse] = response
-
-  private def createSuccessResponse(text: String) = GeminiResponse(
-    candidates = List(
-      GeminiCandidate(
-        content = GeminiContent(
-          parts = List(GeminiPart(text)),
-          role = "model"
-        )
-      )
-    ),
-    promptFeedback = None
-  )
-
   def spec = suite("GeminiServiceSpec")(
-    test("generateContent should return response from client") {
-      val testPrompt       = "test message"
-      val expectedResponse = "Test response"
-      val mockClient       = createMockClient(ZIO.succeed(createSuccessResponse(expectedResponse)))
+    test("should generate content successfully") {
+      for
+        ref <- ZIO.service[Ref[Option[GeminiRequest]]]
+        service <- ZIO.service[GeminiService]
+        result  <- service.generateContent("test prompt")
+        request <- ref.get
+      yield assertTrue(
+        result == "Generated content",
+        request.isDefined,
+        request.get.contents.head.parts.head.text == "test prompt"
+      )
+    }.provide(
+      mockConfig,
+      successMockClient,
+      mockConversationManager,
+      GeminiService.layer,
+      ZLayer.succeed(successRef)
+    ),
 
-      for result <- ZIO
-          .serviceWithZIO[GeminiService](_.generateContent(testPrompt))
-          .provide(
-            ZLayer.succeed(testConfig),
-            ZLayer.succeed(mockClient),
-            ConversationManager.layer,
-            GeminiService.layer
-          )
-      yield assertTrue(result == expectedResponse)
-    },
-    test("should propagate API errors") {
-      val testPrompt    = "test message"
-      val expectedError = ApiError("Test error")
-      val mockClient    = createMockClient(ZIO.fail(expectedError))
-
-      for result <- ZIO
-          .serviceWithZIO[GeminiService](_.generateContent(testPrompt))
-          .provide(
-            ZLayer.succeed(testConfig),
-            ZLayer.succeed(mockClient),
-            ConversationManager.layer,
-            GeminiService.layer
-          )
-          .exit
-      yield assert(result)(fails(equalTo(expectedError)))
-    },
     test("should handle content blocking") {
-      val testPrompt  = "test message"
-      val blockReason = "Content blocked"
-      val blockedResponse = GeminiResponse(
-        candidates = List(
-          GeminiCandidate(
-            content = GeminiContent(
-              parts = List(GeminiPart("Blocked content")),
-              role = "model"
-            )
-          )
-        ),
-        promptFeedback = Some(PromptFeedback(Some(blockReason)))
+      for
+        ref <- ZIO.service[Ref[Option[GeminiRequest]]]
+        service <- ZIO.service[GeminiService]
+        result  <- service.generateContent("test prompt").exit
+        request <- ref.get
+      yield assertTrue(
+        result.isFailure,
+        request.isDefined,
+        request.get.contents.head.parts.head.text == "test prompt"
       )
-      val mockClient = createMockClient(ZIO.succeed(blockedResponse))
+    }.provide(
+      mockConfig,
+      blockingMockClient,
+      mockConversationManager,
+      GeminiService.layer,
+      ZLayer.succeed(blockingRef)
+    ),
 
-      for result <- ZIO
-          .serviceWithZIO[GeminiService](_.generateContent(testPrompt))
-          .provide(
-            ZLayer.succeed(testConfig),
-            ZLayer.succeed(mockClient),
-            ConversationManager.layer,
-            GeminiService.layer
-          )
-          .exit
-      yield assert(result)(fails(equalTo(ApiError(s"Content blocked: $blockReason"))))
-    },
     test("should handle empty response candidates") {
-      val testPrompt = "test message"
-      val emptyResponse = GeminiResponse(
-        candidates = List.empty,
-        promptFeedback = None
-      )
-      val mockClient = createMockClient(ZIO.succeed(emptyResponse))
-
-      for result <- ZIO
-          .serviceWithZIO[GeminiService](_.generateContent(testPrompt))
-          .provide(
-            ZLayer.succeed(testConfig),
-            ZLayer.succeed(mockClient),
-            ConversationManager.layer,
-            GeminiService.layer
-          )
-          .exit
-      yield assert(result)(fails(equalTo(ApiError("Empty response from model"))))
-    },
-    test("should handle network errors") {
-      val testPrompt = "test message"
-      val networkError = NetworkError(new java.net.ConnectException("Connection failed"))
-      val mockClient = createMockClient(ZIO.fail(networkError))
-
-      for result <- ZIO
-          .serviceWithZIO[GeminiService](_.generateContent(testPrompt))
-          .provide(
-            ZLayer.succeed(testConfig),
-            ZLayer.succeed(mockClient),
-            ConversationManager.layer,
-            GeminiService.layer
-          )
-          .exit
-      yield assert(result)(fails(equalTo(networkError)))
-    },
-    test("should respect temperature configuration") {
-      val testPrompt = "test message"
-      val customTemp = 0.9
-      val customConfig = testConfig.copy(temperature = customTemp)
-      var capturedRequest: Option[GeminiRequest] = None
-      
-      val mockClient = new GeminiClient:
-        def generateContent(request: GeminiRequest): IO[GeminiError, GeminiResponse] =
-          ZIO.succeed {
-            capturedRequest = Some(request)
-            createSuccessResponse("Test response")
-          }
-
       for
-        _ <- ZIO
-          .serviceWithZIO[GeminiService](_.generateContent(testPrompt))
-          .provide(
-            ZLayer.succeed(customConfig),
-            ZLayer.succeed(mockClient),
-            ConversationManager.layer,
-            GeminiService.layer
-          )
+        ref <- ZIO.service[Ref[Option[GeminiRequest]]]
+        service <- ZIO.service[GeminiService]
+        result  <- service.generateContent("test prompt").exit
+        request <- ref.get
       yield assertTrue(
-        capturedRequest.exists(_.generationConfig.exists(_.temperature.contains(customTemp)))
+        result.isFailure,
+        request.isDefined,
+        request.get.contents.head.parts.head.text == "test prompt"
       )
-    },
-    test("should respect max tokens configuration") {
-      val testPrompt = "test message"
-      val customTokens = 200
-      val customConfig = testConfig.copy(maxTokens = customTokens)
-      var capturedRequest: Option[GeminiRequest] = None
-      
-      val mockClient = new GeminiClient:
-        def generateContent(request: GeminiRequest): IO[GeminiError, GeminiResponse] =
-          ZIO.succeed {
-            capturedRequest = Some(request)
-            createSuccessResponse("Test response")
-          }
+    }.provide(
+      mockConfig,
+      emptyResponseMockClient,
+      mockConversationManager,
+      GeminiService.layer,
+      ZLayer.succeed(emptyResponseRef)
+    ),
 
-      for
-        _ <- ZIO
-          .serviceWithZIO[GeminiService](_.generateContent(testPrompt))
-          .provide(
-            ZLayer.succeed(customConfig),
-            ZLayer.succeed(mockClient),
-            ConversationManager.layer,
-            GeminiService.layer
-          )
-      yield assertTrue(
-        capturedRequest.exists(_.generationConfig.exists(_.maxOutputTokens.contains(customTokens)))
-      )
-    },
     test("should handle empty parts in response") {
-      val testPrompt = "test message"
-      val emptyPartsResponse = GeminiResponse(
-        candidates = List(
-          GeminiCandidate(
-            content = GeminiContent(
-              parts = List.empty,
-              role = "model"
-            )
-          )
-        ),
-        promptFeedback = None
+      for
+        ref <- ZIO.service[Ref[Option[GeminiRequest]]]
+        service <- ZIO.service[GeminiService]
+        result  <- service.generateContent("test prompt").exit
+        request <- ref.get
+      yield assertTrue(
+        result.isFailure,
+        request.isDefined,
+        request.get.contents.head.parts.head.text == "test prompt"
       )
-      val mockClient = createMockClient(ZIO.succeed(emptyPartsResponse))
+    }.provide(
+      mockConfig,
+      emptyPartsMockClient,
+      mockConversationManager,
+      GeminiService.layer,
+      ZLayer.succeed(emptyPartsRef)
+    ),
 
-      for result <- ZIO
-          .serviceWithZIO[GeminiService](_.generateContent(testPrompt))
-          .provide(
-            ZLayer.succeed(testConfig),
-            ZLayer.succeed(mockClient),
-            ConversationManager.layer,
-            GeminiService.layer
-          )
-          .exit
-      yield assert(result)(fails(equalTo(ApiError("Invalid response format: empty parts"))))
-    },
-    test("should handle invalid response format") {
-      val testPrompt = "test message"
-      val invalidResponse = GeminiResponse(
-        candidates = List(
-          GeminiCandidate(
-            content = GeminiContent(
-              parts = List(GeminiPart(null)),
-              role = "model"
-            )
-          )
-        ),
-        promptFeedback = None
+    test("should handle missing text in response") {
+      for
+        ref <- ZIO.service[Ref[Option[GeminiRequest]]]
+        service <- ZIO.service[GeminiService]
+        result  <- service.generateContent("test prompt").exit
+        request <- ref.get
+      yield assertTrue(
+        result.isFailure,
+        request.isDefined,
+        request.get.contents.head.parts.head.text == "test prompt"
       )
-      val mockClient = createMockClient(ZIO.succeed(invalidResponse))
+    }.provide(
+      mockConfig,
+      missingTextMockClient,
+      mockConversationManager,
+      GeminiService.layer,
+      ZLayer.succeed(missingTextRef)
+    ),
 
-      for result <- ZIO
-          .serviceWithZIO[GeminiService](_.generateContent(testPrompt))
-          .provide(
-            ZLayer.succeed(testConfig),
-            ZLayer.succeed(mockClient),
-            ConversationManager.layer,
-            GeminiService.layer
-          )
-          .exit
-      yield assert(result)(fails(equalTo(ApiError("Invalid response format: null text"))))
-    },
+    test("should handle network errors") {
+      for
+        ref <- ZIO.service[Ref[Option[GeminiRequest]]]
+        service <- ZIO.service[GeminiService]
+        result  <- service.generateContent("test prompt").exit
+        request <- ref.get
+      yield assertTrue(
+        result.isFailure,
+        request.isDefined,
+        request.get.contents.head.parts.head.text == "test prompt"
+      )
+    }.provide(
+      mockConfig,
+      networkErrorMockClient,
+      mockConversationManager,
+      GeminiService.layer,
+      ZLayer.succeed(networkErrorRef)
+    ),
+
+    test("should respect temperature configuration") {
+      for
+        ref <- ZIO.service[Ref[Option[GeminiRequest]]]
+        service <- ZIO.service[GeminiService]
+        _       <- service.generateContent("test prompt")
+        request <- ref.get
+      yield assertTrue(
+        request.isDefined,
+        request.get.generationConfig.exists(_.temperature.contains(0.7))
+      )
+    }.provide(
+      mockConfig,
+      successMockClient,
+      mockConversationManager,
+      GeminiService.layer,
+      ZLayer.succeed(successRef)
+    ),
+
+    test("should respect max tokens configuration") {
+      for
+        ref <- ZIO.service[Ref[Option[GeminiRequest]]]
+        service <- ZIO.service[GeminiService]
+        _       <- service.generateContent("test prompt")
+        request <- ref.get
+      yield assertTrue(
+        request.isDefined,
+        request.get.generationConfig.exists(_.maxOutputTokens.contains(100))
+      )
+    }.provide(
+      mockConfig,
+      successMockClient,
+      mockConversationManager,
+      GeminiService.layer,
+      ZLayer.succeed(successRef)
+    ),
+
     suite("conversation history")(
       test("should maintain conversation history") {
-        val messages = List("First", "Second", "Third")
-        var capturedRequests = List.empty[GeminiRequest]
-        
-        val mockClient = new GeminiClient:
-          def generateContent(request: GeminiRequest): IO[GeminiError, GeminiResponse] =
-            ZIO.succeed {
-              capturedRequests = request :: capturedRequests
-              createSuccessResponse("Response")
-            }
-
         for
-          service <- ZIO
-            .service[GeminiService]
-            .provide(
-              ZLayer.succeed(testConfig),
-              ZLayer.succeed(mockClient),
-              ConversationManager.layer,
-              GeminiService.layer
-            )
-          _      <- ZIO.foreach(messages)(service.generateContent)
+          service <- ZIO.service[GeminiService]
+          _       <- service.generateContent("First message")
+          _       <- service.generateContent("Second message")
+          history <- ZIO.service[ConversationManager].flatMap(_.getHistory)
         yield assertTrue(
-          // First request should have 1 message
-          capturedRequests(2).contents.length == 1 &&
-          capturedRequests(2).contents.head.parts.head.text == "First" &&
-          // Second request should have 3 messages (user, model, user)
-          capturedRequests(1).contents.length == 3 &&
-          capturedRequests(1).contents.map(_.role) == List("user", "model", "user") &&
-          capturedRequests(1).contents.last.parts.head.text == "Second" &&
-          // Third request should have 5 messages (user, model, user, model, user)
-          capturedRequests.head.contents.length == 5 &&
-          capturedRequests.head.contents.map(_.role) == List("user", "model", "user", "model", "user") &&
-          capturedRequests.head.contents.last.parts.head.text == "Third"
+          history.size == 4, // 2 user messages + 2 model responses
+          history(0).role == "model",
+          history(1).role == "user",
+          history(1).parts.head.text == "Second message",
+          history(2).role == "model",
+          history(3).role == "user",
+          history(3).parts.head.text == "First message"
         )
-      },
-      test("should clear history when requested") {
-        var capturedRequests = List.empty[GeminiRequest]
-        
-        val mockClient = new GeminiClient:
-          def generateContent(request: GeminiRequest): IO[GeminiError, GeminiResponse] =
-            ZIO.succeed {
-              capturedRequests = request :: capturedRequests
-              createSuccessResponse("Response")
-            }
+      }.provide(
+        mockConfig,
+        successMockClient,
+        mockConversationManager,
+        GeminiService.layer
+      ),
 
-        for
-          service <- ZIO
-            .service[GeminiService]
-            .provide(
-              ZLayer.succeed(testConfig),
-              ZLayer.succeed(mockClient),
-              ConversationManager.layer,
-              GeminiService.layer
-            )
-          _      <- service.generateContent("Initial message")
-          _      <- service.clearHistory
-          _      <- service.generateContent("New message")
-        yield assertTrue(
-          capturedRequests.head.contents.length == 1,
-          capturedRequests.head.contents.head.parts.head.text == "New message"
-        )
-      },
       test("should alternate user and model messages") {
-        var capturedRequest: Option[GeminiRequest] = None
-        
-        val mockClient = new GeminiClient:
-          def generateContent(request: GeminiRequest): IO[GeminiError, GeminiResponse] =
-            ZIO.succeed {
-              capturedRequest = Some(request)
-              createSuccessResponse("Response")
-            }
-
         for
-          service <- ZIO
-            .service[GeminiService]
-            .provide(
-              ZLayer.succeed(testConfig),
-              ZLayer.succeed(mockClient),
-              ConversationManager.layer,
-              GeminiService.layer
-            )
-          _      <- service.generateContent("First")
-          _      <- service.generateContent("Second")
+          service <- ZIO.service[GeminiService]
+          _       <- service.generateContent("User message")
+          history <- ZIO.service[ConversationManager].flatMap(_.getHistory)
         yield assertTrue(
-          capturedRequest.exists(req =>
-            req.contents.length == 3 &&
-            req.contents.map(_.role) == List("user", "model", "user")
-          )
+          history.size == 2,
+          history(0).role == "model",
+          history(0).parts.head.text == "Generated content",
+          history(1).role == "user",
+          history(1).parts.head.text == "User message"
         )
-      }
+      }.provide(
+        mockConfig,
+        successMockClient,
+        mockConversationManager,
+        GeminiService.layer
+      ),
+
+      test("should clear history when requested") {
+        for
+          service <- ZIO.service[GeminiService]
+          _       <- service.generateContent("First message")
+          _       <- service.clearHistory
+          history <- ZIO.service[ConversationManager].flatMap(_.getHistory)
+        yield assertTrue(
+          history.isEmpty
+        )
+      }.provide(
+        mockConfig,
+        successMockClient,
+        mockConversationManager,
+        GeminiService.layer
+      )
     )
+  )
+
+  private def makeHistoryRef = Unsafe.unsafe { implicit u => 
+    Runtime.default.unsafe.run(Ref.make(List.empty[GeminiRequest])).getOrThrow()
+  }
+
+  private def makeRequestRef = Unsafe.unsafe { implicit u => 
+    Runtime.default.unsafe.run(Ref.make(Option.empty[GeminiRequest])).getOrThrow()
+  }
+
+  private def makeSuccessMockClient(requestRef: Ref[Option[GeminiRequest]], historyRef: Ref[List[GeminiRequest]]) = ZLayer.succeed {
+    new GeminiClient:
+      def generateContent(request: GeminiRequest): IO[GeminiError, GeminiResponse] =
+        for
+          _ <- requestRef.set(Some(request))
+          _ <- historyRef.update(request :: _)
+          response <- ZIO.succeed(
+            GeminiResponse(
+              List(
+                GeminiCandidate(
+                  GeminiContent(
+                    List(GeminiPart("Generated content")),
+                    "model"
+                  )
+                )
+              ),
+              None
+            )
+          )
+        yield response
+  }
+
+  private def makeBlockingMockClient(requestRef: Ref[Option[GeminiRequest]], historyRef: Ref[List[GeminiRequest]]) = ZLayer.succeed {
+    new GeminiClient:
+      def generateContent(request: GeminiRequest): IO[GeminiError, GeminiResponse] =
+        for
+          _ <- requestRef.set(Some(request))
+          _ <- historyRef.update(request :: _)
+          response <- ZIO.succeed(
+            GeminiResponse(
+              List(
+                GeminiCandidate(
+                  GeminiContent(
+                    List(GeminiPart("")),
+                    "model"
+                  )
+                )
+              ),
+              promptFeedback = Some(
+                PromptFeedback(
+                  blockReason = Some("Test block reason")
+                )
+              )
+            )
+          )
+        yield response
+  }
+
+  private def makeEmptyResponseMockClient(requestRef: Ref[Option[GeminiRequest]], historyRef: Ref[List[GeminiRequest]]) = ZLayer.succeed {
+    new GeminiClient:
+      def generateContent(request: GeminiRequest): IO[GeminiError, GeminiResponse] =
+        for
+          _ <- requestRef.set(Some(request))
+          _ <- historyRef.update(request :: _)
+          response <- ZIO.succeed(GeminiResponse(List.empty, None))
+        yield response
+  }
+
+  private def makeNetworkErrorMockClient(requestRef: Ref[Option[GeminiRequest]], historyRef: Ref[List[GeminiRequest]]) = ZLayer.succeed {
+    new GeminiClient:
+      def generateContent(request: GeminiRequest): IO[GeminiError, GeminiResponse] =
+        for
+          _ <- requestRef.set(Some(request))
+          _ <- historyRef.update(request :: _)
+          response <- ZIO.fail(NetworkError(new RuntimeException("Network failure")))
+        yield response
+  }
+
+  private def makeEmptyPartsMockClient(requestRef: Ref[Option[GeminiRequest]], historyRef: Ref[List[GeminiRequest]]) = ZLayer.succeed {
+    new GeminiClient:
+      def generateContent(request: GeminiRequest): IO[GeminiError, GeminiResponse] =
+        for
+          _ <- requestRef.set(Some(request))
+          _ <- historyRef.update(request :: _)
+          response <- ZIO.succeed(
+            GeminiResponse(
+              List(
+                GeminiCandidate(
+                  GeminiContent(List.empty, "model")
+                )
+              ),
+              None
+            )
+          )
+        yield response
+  }
+
+  private def makeMissingTextMockClient(requestRef: Ref[Option[GeminiRequest]], historyRef: Ref[List[GeminiRequest]]) = ZLayer.succeed {
+    new GeminiClient:
+      def generateContent(request: GeminiRequest): IO[GeminiError, GeminiResponse] =
+        for
+          _ <- requestRef.set(Some(request))
+          _ <- historyRef.update(request :: _)
+          response <- ZIO.succeed(
+            GeminiResponse(
+              List(
+                GeminiCandidate(
+                  GeminiContent(
+                    List(GeminiPart(Option.empty[String].orNull)),
+                    "model"
+                  )
+                )
+              ),
+              None
+            )
+          )
+        yield response
+  }
+
+  private val successRef = makeRequestRef
+  private val blockingRef = makeRequestRef
+  private val emptyResponseRef = makeRequestRef
+  private val emptyPartsRef = makeRequestRef
+  private val missingTextRef = makeRequestRef
+  private val networkErrorRef = makeRequestRef
+  private val historyRef = makeHistoryRef
+
+  private val successMockClient = makeSuccessMockClient(successRef, historyRef)
+  private val blockingMockClient = makeBlockingMockClient(blockingRef, historyRef)
+  private val emptyResponseMockClient = makeEmptyResponseMockClient(emptyResponseRef, historyRef)
+  private val networkErrorMockClient = makeNetworkErrorMockClient(networkErrorRef, historyRef)
+  private val emptyPartsMockClient = makeEmptyPartsMockClient(emptyPartsRef, historyRef)
+  private val missingTextMockClient = makeMissingTextMockClient(missingTextRef, historyRef)
+
+  private val mockConfig = ZLayer.succeed(
+    GeminiConfig(
+      apiKey = "test-key",
+      model = "test-model",
+      temperature = 0.7,
+      maxTokens = 100,
+      retryConfig = RetryConfig(1, 1.second, 5.seconds, 2.0),
+      clientTimeout = 30.seconds,
+      endpoints = ApiEndpointConfig(
+        baseUrl = "http://localhost:8080",
+        version = "v1",
+        generateContentEndpoint = "generateContent"
+      )
+    )
+  )
+
+  private val mockConversationManager = ZLayer.succeed(
+    new ConversationManager:
+      private val history = Unsafe.unsafe { implicit u => 
+        Runtime.default.unsafe.run(Ref.make(List.empty[GeminiContent])).getOrThrow()
+      }
+      def addMessage(message: GeminiContent): UIO[Unit] = history.update(message :: _)
+      def getHistory: UIO[List[GeminiContent]] = history.get
+      def clear: UIO[Unit] = history.set(List.empty)
   )

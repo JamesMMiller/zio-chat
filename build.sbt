@@ -7,9 +7,27 @@ ThisBuild / scalaVersion := scala3Version
 ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "com.example"
 
-// Enable scalafix
+// Enable scalafix for main and test sources
 ThisBuild / semanticdbEnabled := true
 ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
+
+// ScalaFix rules
+ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
+
+// Define custom commands
+addCommandAlias(
+  "lint",
+  List(
+    "scalafixAll --check",
+    "Test/scalafixAll --check",
+    "scalafmtCheck",
+    "Test/scalafmtCheck",
+    "scalafixAll",
+    "Test/scalafixAll",
+    "scalafmt",
+    "Test/scalafmt"
+  ).mkString(";")
+)
 
 coverageMinimumStmtTotal := 80
 coverageFailOnMinimum := true
