@@ -6,31 +6,6 @@ import scala.concurrent.duration.Duration
 import scala.jdk.DurationConverters.*
 
 /**
- * Configuration for the Gemini API client.
- *
- * @param apiKey
- *   API key for authentication
- * @param model
- *   Name of the model to use (e.g., "gemini-pro")
- * @param temperature
- *   Controls randomness in responses (0.0 to 1.0)
- * @param maxTokens
- *   Maximum number of tokens in responses
- * @param retryConfig
- *   Configuration for retry behavior
- * @param clientTimeout
- *   HTTP client timeout duration
- */
-case class GeminiConfig(
-    apiKey: String,
-    model: String,
-    temperature: Double,
-    maxTokens: Int,
-    retryConfig: RetryConfig,
-    clientTimeout: Duration
-)
-
-/**
  * Configuration for retry behavior.
  *
  * @param maxAttempts
@@ -47,6 +22,47 @@ case class RetryConfig(
     initialDelay: Duration,
     maxDelay: Duration,
     backoffFactor: Double
+)
+
+/**
+ * Configuration for Gemini API endpoints.
+ *
+ * @param baseUrl Base URL for the Gemini API
+ * @param version API version
+ * @param generateContentEndpoint Endpoint for content generation
+ */
+case class ApiEndpointConfig(
+    baseUrl: String = "https://generativelanguage.googleapis.com",
+    version: String = "v1",
+    generateContentEndpoint: String = "generateContent"
+)
+
+/**
+ * Configuration for the Gemini API client.
+ *
+ * @param apiKey
+ *   API key for authentication
+ * @param model
+ *   Name of the model to use (e.g., "gemini-pro")
+ * @param temperature
+ *   Controls randomness in responses (0.0 to 1.0)
+ * @param maxTokens
+ *   Maximum number of tokens in responses
+ * @param retryConfig
+ *   Configuration for retry behavior
+ * @param clientTimeout
+ *   HTTP client timeout duration
+ * @param endpoints
+ *   API endpoint configuration
+ */
+case class GeminiConfig(
+    apiKey: String,
+    model: String,
+    temperature: Double,
+    maxTokens: Int,
+    retryConfig: RetryConfig,
+    clientTimeout: Duration,
+    endpoints: ApiEndpointConfig = ApiEndpointConfig()
 )
 
 /**
